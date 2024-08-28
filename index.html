@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gossip lycée Pierre Paul Riquet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        :root {
+            --primary-color: #4267B2;
+            --secondary-color: #E9EBEE;
+            --text-color: #1C1E21;
+            --light-text-color: #606770;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+        }
+
+        .navbar {
+            background-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            color: white !important;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            border-bottom: none;
+            padding: 1rem;
+        }
+
+        .btn-custom {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-custom:hover {
+            background-color: #365899;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .rumor-preview {
+            padding: 1rem;
+            border-bottom: 1px solid var(--secondary-color);
+            transition: background-color 0.3s ease;
+        }
+
+        .rumor-preview:last-child {
+            border-bottom: none;
+        }
+
+        .rumor-preview:hover {
+            background-color: #f7f7f7;
+        }
+
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+
+        .modal-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            border-bottom: none;
+        }
+
+        .list-group-item {
+            border: none;
+            padding: 0.75rem 1.25rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .list-group-item:hover {
+            background-color: #f0f2f5;
+        }
+
+        #chatFrame {
+            transition: opacity 0.3s ease;
+        }
+
+        .fade-out {
+            opacity: 0;
+        }
+
+        .fade-in {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4 animate__animated animate__fadeInDown">
+        <div class="container">
+            <a class="navbar-brand" href="#">Gossip Site</a>
+            {% if username %}
+                <span class="navbar-text text-white">
+                    Connecté en tant que <strong>{{ username }}</strong>
+                    {% if is_admin %}
+                        <span class="badge bg-success animate__animated animate__fadeIn">Admin</span>
+                    {% endif %}
+                </span>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row">
+            <!-- Section des Derniers Inscrits -->
+            <div class="col-md-3 animate__animated animate__fadeInLeft">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-users me-2"></i>Derniers Inscrits
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        {% for user in recent_users %}
+                            <li class="list-group-item"><i class="fas fa-user me-2"></i>{{ user }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section principale -->
+            <div class="col-md-6 animate__animated animate__fadeInUp">
+                <div class="card">
+                    <div class="card-body text-center">
+                        {% if username %}
+                            <div class="mb-4">
+                                <a href="{{ url_for('logout') }}" class="btn btn-custom me-2"><i class="fas fa-sign-out-alt me-2"></i>Se déconnecter</a>
+                                <a href="{{ url_for('profile') }}" class="btn btn-info me-2"><i class="fas fa-user-circle me-2"></i>Mon Profil</a>
+                            </div>
+                            <div>
+                                <a href="{{ url_for('rumor') }}" class="btn btn-warning me-2"><i class="fas fa-comment-dots me-2"></i>Quelque chose à dire ?</a>
+                                <a href="{{ url_for('all_rumors') }}" class="btn btn-secondary"><i class="fas fa-list-alt me-2"></i>Voir toutes les Rumeurs</a>
+                            </div>
+
+                            <!-- Ajout de l'iframe du chat -->
+                            <div class="card mt-4">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-comments me-2"></i>Chat en Direct</span>
+                                    {% if is_admin %}
+                                        <button id="clearChatBtn" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash me-1"></i>Effacer le chat
+                                        </button>
+                                    {% endif %}
+                                </div>
+                                <div class="card-body">
+                                    <iframe id="chatFrame" src="{{ url_for('chat') }}" style="width: 100%; height: 500px; border: none;"></iframe>
+                                </div>
+                            </div>
+
+                        {% else %}
+                            <a href="{{ url_for('login') }}" class="btn btn-custom me-2"><i class="fas fa-sign-in-alt me-2"></i>Connexion</a>
+                            <a href="{{ url_for('register') }}" class="btn btn-secondary"><i class="fas fa-user-plus me-2"></i>Inscription</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section des Dernières Rumeurs -->
+            <div class="col-md-3 animate__animated animate__fadeInRight">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-bullhorn me-2"></i>Dernières Rumeurs
+                    </div>
+                    <div class="list-group list-group-flush">
+                        {% for author, title, content in recent_rumors %}
+                            <div class="rumor-preview">
+                                <h5><i class="fas fa-comment me-2"></i>{{ title }}</h5>
+                                <p><small><i class="fas fa-user me-1"></i>{{ author }}</small></p>
+                                <p>{{ content[:100] }}{{ '...' if content|length > 100 else '' }}</p>
+                                <button class="btn btn-sm btn-primary view-rumor" data-title="{{ title }}" data-author="{{ author }}" data-content="{{ content }}">
+                                    <i class="fas fa-eye me-1"></i>Voir
+                                </button>
+                                {% if is_admin %}
+                                    <button class="btn btn-sm btn-danger delete-rumor" data-title="{{ title }}" data-author="{{ author }}">
+                                        <i class="fas fa-trash me-1"></i>Supprimer
+                                    </button>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour les règles d'utilisation -->
+    <div class="modal fade" id="rulesModal" tabindex="-1" aria-labelledby="rulesModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rulesModalLabel">Règles d'utilisation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ol>
+                        <li>Respectez les autres utilisateurs.</li>
+                        <li>Évitez le langage offensant ou discriminatoire.</li>
+                        <li>Ne partagez pas d'informations personnelles.</li>
+                        <li>Vérifiez vos sources avant de partager des rumeurs.</li>
+                        <li>Les administrateurs se réservent le droit de supprimer tout contenu inapproprié.</li>
+                    </ol>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">J'ai compris</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour afficher une rumeur en grand -->
+    <div class="modal fade" id="rumorModal" tabindex="-1" aria-labelledby="rumorModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rumorModalLabel"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="rumorAuthor"></p>
+                    <p id="rumorContent"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Afficher le modal des règles au chargement de la page
+        window.onload = function() {
+            var rulesModal = new bootstrap.Modal(document.getElementById('rulesModal'));
+            rulesModal.show();
+        };
+
+        // Gérer l'affichage d'une rumeur en grand
+        document.querySelectorAll('.view-rumor').forEach(button => {
+            button.addEventListener('click', function() {
+                var modal = new bootstrap.Modal(document.getElementById('rumorModal'));
+                document.getElementById('rumorModalLabel').textContent = this.dataset.title;
+                document.getElementById('rumorAuthor').textContent = 'Par ' + this.dataset.author;
+                document.getElementById('rumorContent').textContent = this.dataset.content;
+                modal.show();
+            });
+        });
+
+        // Gérer la suppression d'une rumeur (pour les admins)
+        document.querySelectorAll('.delete-rumor').forEach(button => {
+            button.addEventListener('click', function() {
+                if (confirm('Êtes-vous sûr de vouloir supprimer cette rumeur ?')) {
+                    fetch('/delete_rumor', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            'title': this.dataset.title,
+                            'author': this.dataset.author
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            this.closest('.rumor-preview').classList.add('animate__animated', 'animate__fadeOutRight');
+                            setTimeout(() => {
+                                this.closest('.rumor-preview').remove();
+                            }, 500);
+                        } else {
+                            alert('Erreur lors de la suppression de la rumeur.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Une erreur est survenue lors de la suppression de la rumeur.');
+                    });
+                }
+            });
+        });
+
+        // Handle chat clearing (for admins)
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        const chatFrame = document.getElementById('chatFrame');
+        if (clearChatBtn) {
+            clearChatBtn.addEventListener('click', function() {
+                if (confirm('Êtes-vous sûr de vouloir effacer tout le chat ?')) {
+                    fetch('/chat/clear', { method: 'POST' })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                chatFrame.classList.add('fade-out');
+                                setTimeout(() => {
+                                    chatFrame.contentWindow.location.reload();
+                                    setTimeout(() => {
+                                        chatFrame.classList.remove('fade-out');
+                                        chatFrame.classList.add('fade-in');
+                                    }, 300);
+                                }, 300);
+                                alert('Le chat a été effacé avec succès.');
+                            } else {
+                                alert('Une erreur est survenue lors de l\'effacement du chat.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Une erreur est survenue lors de l\'effacement du chat.');
+                        });
+                }
+            });
+        }
+    </script>
+</body>
+</html>
